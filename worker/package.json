@@ -1,0 +1,21 @@
+{
+  "name": "course-sharing-worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute COURSE_DB --file=../database/schema.sql --remote",
+    "db:seed": "wrangler d1 execute COURSE_DB --file=../database/seeds.sql --remote",
+    "db:init:local": "wrangler d1 execute COURSE_DB --file=../database/schema.sql --local",
+    "db:seed:local": "wrangler d1 execute COURSE_DB --file=../database/seeds.sql --local"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

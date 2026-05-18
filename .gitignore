@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.arts/
+.codeartsdoer/
+backend/node_modules/
+backend/__tests__/
+backend/uploads/
+backend/.npm_cache/
+frontend/node_modules/
+frontend/dist/
+worker/node_modules/
+worker/.wrangler/
+*.log
+.env

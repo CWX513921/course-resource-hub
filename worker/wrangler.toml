@@ -1,0 +1,18 @@
+name = "course-sharing-api"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+JWT_SECRET = "course_platform_jwt_secret_cloudflare"
+JWT_EXPIRES_IN = "7d"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "course-sharing-db"
+database_id = "56b7e6d7-7cd4-4579-9058-a588808a8271"
+
+# R2 需要先在 Cloudflare Dashboard 中启用后取消注释
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "course-uploads"
