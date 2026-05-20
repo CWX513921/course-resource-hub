@@ -3,8 +3,7 @@ name: Deploy Pages
 on:
   push:
     branches: [master]
-    paths:
-      - 'frontend/**'
+  workflow_dispatch:
 
 jobs:
   deploy:

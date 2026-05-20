@@ -3,8 +3,7 @@ name: Deploy Worker
 on:
   push:
     branches: [master]
-    paths:
-      - 'worker/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
