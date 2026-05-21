@@ -47,7 +47,13 @@ resource.get('/:id/file', async (c) => {
   }
 
   const fileRow = await db.prepare('SELECT file_data FROM resource_files WHERE resource_id = ?').bind(id).first()
-  if (!fileRow) return c.json({ code: 2001, message: '文件数据不存在' }, 404)
+  if (!fileRow) {
+    try {
+      const rows = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='resource_files'").first()
+      if (!rows) return c.json({ code: 2001, message: '文件数据不存在，resource_files表未创建' }, 404)
+    } catch {}
+    return c.json({ code: 2001, message: '文件数据不存在' }, 404)
+  }
 
   const binaryStr = atob(fileRow.file_data)
   const bytes = new Uint8Array(binaryStr.length)
@@ -102,7 +108,12 @@ resource.post('/', async (c) => {
   } else {
     const arrayBuffer = await file.arrayBuffer()
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
-    await db.prepare('INSERT INTO resource_files (resource_id, file_data) VALUES (?, ?)').bind(resourceId, base64).run()
+    try {
+      await db.prepare('INSERT INTO resource_files (resource_id, file_data) VALUES (?, ?)').bind(resourceId, base64).run()
+    } catch {
+      await db.prepare('CREATE TABLE IF NOT EXISTS resource_files (resource_id INTEGER PRIMARY KEY, file_data TEXT NOT NULL)').run()
+      await db.prepare('INSERT INTO resource_files (resource_id, file_data) VALUES (?, ?)').bind(resourceId, base64).run()
+    }
   }
 
   if (tags) {
