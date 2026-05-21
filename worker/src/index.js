@@ -10,7 +10,7 @@ import userRoutes from './routes/user.js'
 const app = new Hono()
 
 app.use('*', cors({
-  origin: ['https://dd7878.cc.cd', 'http://localhost:5173'],
+  origin: ['https://dd7878.cc.cd', 'https://api.dd7878.cc.cd', 'http://localhost:5173'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   exposeHeaders: ['Content-Disposition'],
