@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
@@ -63,6 +63,8 @@ const barChartRef = ref(null)
 const pieChartRef = ref(null)
 const users = ref([])
 const usersLoading = ref(false)
+const topDownloadedData = ref([])
+const categoryData = ref([])
 let barChart = null
 let pieChart = null
 
@@ -70,6 +72,11 @@ onMounted(async () => {
   await Promise.all([fetchOverview(), fetchTopDownloaded(), fetchCategoryStats(), fetchUsers()])
   await nextTick()
   initCharts()
+})
+
+onBeforeUnmount(() => {
+  if (barChart) { barChart.dispose(); barChart = null }
+  if (pieChart) { pieChart.dispose(); pieChart = null }
 })
 
 async function fetchOverview() {
@@ -82,14 +89,14 @@ async function fetchOverview() {
 async function fetchTopDownloaded() {
   try {
     const res = await request.get('/stats/resources/top-downloaded', { params: { limit: 10 } })
-    topDownloadedData.value = res.data
+    topDownloadedData.value = res.data || []
   } catch {}
 }
 
 async function fetchCategoryStats() {
   try {
     const res = await request.get('/stats/categories')
-    categoryData.value = res.data
+    categoryData.value = (res.data || []).filter(item => item.resource_count > 0)
   } catch {}
 }
 
@@ -103,29 +110,49 @@ async function fetchUsers() {
   }
 }
 
-const topDownloadedData = ref([])
-const categoryData = ref([])
-
 function initCharts() {
   if (barChartRef.value) {
     barChart = echarts.init(barChartRef.value)
-    barChart.setOption({
-      tooltip: { trigger: 'axis' },
-      xAxis: { type: 'category', data: topDownloadedData.value.map(i => i.title?.substring(0, 8)), axisLabel: { rotate: 30 } },
-      yAxis: { type: 'value' },
-      series: [{ type: 'bar', data: topDownloadedData.value.map(i => i.download_count), itemStyle: { color: '#409eff' } }]
-    })
+    updateBarChart()
   }
   if (pieChartRef.value) {
     pieChart = echarts.init(pieChartRef.value)
-    pieChart.setOption({
-      tooltip: { trigger: 'item' },
-      series: [{
-        type: 'pie', radius: '60%',
-        data: categoryData.value.map(i => ({ name: i.category_name, value: i.resource_count }))
-      }]
-    })
+    updatePieChart()
   }
+}
+
+function updateBarChart() {
+  if (!barChart) return
+  const data = topDownloadedData.value
+  barChart.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: data.map(i => (i.title || '').substring(0, 8)), axisLabel: { rotate: 30 } },
+    yAxis: { type: 'value' },
+    series: [{ type: 'bar', data: data.map(i => i.download_count || 0), itemStyle: { color: '#409eff' } }]
+  }, true)
+}
+
+function updatePieChart() {
+  if (!pieChart) return
+  const data = categoryData.value
+  if (data.length === 0) {
+    pieChart.setOption({
+      title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999', fontSize: 14 } }
+    }, true)
+    return
+  }
+  pieChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    legend: { orient: 'vertical', left: 'left', top: 'middle' },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      center: ['60%', '50%'],
+      data: data.map(i => ({ name: i.category_name || '未分类', value: i.resource_count || 0 })),
+      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } },
+      label: { formatter: '{b}: {c}' }
+    }]
+  }, true)
 }
 
 async function toggleUserStatus(user) {

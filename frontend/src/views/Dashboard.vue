@@ -2,7 +2,7 @@
   <div class="dashboard-page">
     <div class="dashboard-header">
       <h2>教师工作台</h2>
-      <el-button type="primary" @click="showUploadDialog = true">上传资源</el-button>
+      <el-button type="primary" @click="openUploadDialog">上传资源</el-button>
     </div>
 
     <el-dialog v-model="showUploadDialog" title="上传资源" width="600px" destroy-on-close>
@@ -32,6 +32,31 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="showEditDialog" title="编辑资源" width="600px" destroy-on-close>
+      <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="80px">
+        <el-form-item label="标题" prop="title">
+          <el-input v-model="editForm.title" placeholder="请输入资源标题" />
+        </el-form-item>
+        <el-form-item label="描述" prop="description">
+          <el-input v-model="editForm.description" type="textarea" :rows="3" placeholder="请输入资源描述" />
+        </el-form-item>
+        <el-form-item label="分类" prop="categoryId">
+          <el-cascader v-model="editForm.categoryId" :options="categoryOptions" :props="{ value: 'id', label: 'name', children: 'children', emitPath: false }" placeholder="请选择分类" clearable />
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+          <el-select v-model="editForm.status" placeholder="请选择状态">
+            <el-option label="已发布" value="published" />
+            <el-option label="草稿" value="draft" />
+            <el-option label="归档" value="archived" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEditDialog = false">取消</el-button>
+        <el-button type="primary" :loading="editing" @click="handleEditSubmit">保存</el-button>
+      </template>
+    </el-dialog>
+
     <el-table :data="myResources" v-loading="loading" stripe>
       <el-table-column prop="title" label="标题" min-width="200" />
       <el-table-column prop="file_type" label="类型" width="80">
@@ -39,10 +64,11 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'published' ? 'success' : row.status === 'draft' ? 'info' : 'warning'">{{ row.status }}</el-tag>
+          <el-tag :type="row.status === 'published' ? 'success' : row.status === 'draft' ? 'info' : 'warning'">{{ { published: '已发布', draft: '草稿', archived: '归档' }[row.status] || row.status }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="download_count" label="下载量" width="80" />
+      <el-table-column prop="view_count" label="浏览量" width="80" />
       <el-table-column prop="created_at" label="上传时间" width="180" />
       <el-table-column label="操作" width="180" fixed="right">
         <template #default="{ row }">
@@ -63,15 +89,23 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const categoryStore = useCategoryStore()
 const loading = ref(false)
 const uploading = ref(false)
+const editing = ref(false)
 const showUploadDialog = ref(false)
+const showEditDialog = ref(false)
 const uploadFormRef = ref(null)
 const uploadRef = ref(null)
+const editFormRef = ref(null)
 const myResources = ref([])
 const selectedFile = ref(null)
 
 const uploadForm = reactive({ title: '', description: '', categoryId: '', tags: [] })
+const editForm = reactive({ id: null, title: '', description: '', categoryId: '', status: 'published' })
 const uploadRules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }]
+}
+const editRules = {
+  title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
+  status: [{ required: true, message: '请选择状态', trigger: 'change' }]
 }
 const categoryOptions = computed(() => categoryStore.tree)
 
@@ -88,6 +122,12 @@ async function fetchMyResources() {
   } finally {
     loading.value = false
   }
+}
+
+function openUploadDialog() {
+  Object.assign(uploadForm, { title: '', description: '', categoryId: '', tags: [] })
+  selectedFile.value = null
+  showUploadDialog.value = true
 }
 
 function onFileChange(file) { selectedFile.value = file.raw }
@@ -107,8 +147,6 @@ async function handleUpload() {
     await request.post('/resources', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
     ElMessage.success('上传成功')
     showUploadDialog.value = false
-    Object.assign(uploadForm, { title: '', description: '', categoryId: '', tags: [] })
-    selectedFile.value = null
     await fetchMyResources()
   } catch (err) {
     ElMessage.error(err.message || '上传失败')
@@ -118,7 +156,29 @@ async function handleUpload() {
 }
 
 function handleEdit(row) {
-  ElMessage.info('编辑功能：可扩展为弹窗编辑表单')
+  editForm.id = row.id
+  editForm.title = row.title
+  editForm.description = row.description || ''
+  editForm.categoryId = row.category_id || ''
+  editForm.status = row.status || 'published'
+  showEditDialog.value = true
+}
+
+async function handleEditSubmit() {
+  await editFormRef.value.validate()
+  editing.value = true
+  try {
+    const data = { title: editForm.title, description: editForm.description, status: editForm.status }
+    if (editForm.categoryId) data.categoryId = editForm.categoryId
+    await request.put(`/resources/${editForm.id}`, data)
+    ElMessage.success('更新成功')
+    showEditDialog.value = false
+    await fetchMyResources()
+  } catch (err) {
+    ElMessage.error(err.message || '更新失败')
+  } finally {
+    editing.value = false
+  }
 }
 
 async function handleDelete(row) {

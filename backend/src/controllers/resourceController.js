@@ -1,6 +1,7 @@
 const resourceService = require('../services/resourceService');
 const accessLogService = require('../services/accessLogService');
 const path = require('path');
+const fs = require('fs');
 
 async function list(req, res, next) {
   try {
@@ -113,10 +114,38 @@ async function download(req, res, next) {
     await resourceService.incrementDownload(id);
     const userId = req.user ? req.user.userId : null;
     await accessLogService.log({ userId, resourceId: id, action: 'download', ipAddress: req.ip });
-    res.json({ code: 0, message: 'success', data: { downloadUrl: `/uploads/${path.basename(resource.file_path)}` } });
+    res.json({ code: 0, message: 'success', data: { downloadUrl: `/api/v1/resources/${id}/file` } });
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = { list, detail, create, update, remove, download };
+async function downloadFile(req, res, next) {
+  try {
+    const id = req.params.id;
+    const resource = await resourceService.findById(id);
+    if (!resource) {
+      return res.status(404).json({ code: 2001, message: '资源不存在' });
+    }
+    const filePath = resource.file_path;
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ code: 2002, message: '文件不存在' });
+    }
+    const fileName = path.basename(filePath).replace(/^\d+-/, '');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeTypes = {
+      '.pdf': 'application/pdf', '.ppt': 'application/vnd.ms-powerpoint', '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.zip': 'application/zip', '.rar': 'application/x-rar-compressed'
+    };
+    res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, detail, create, update, remove, download, downloadFile };

@@ -25,6 +25,20 @@ resource.get('/', async (c) => {
   return c.json({ code: 0, message: 'success', data: { list: rows.results, total, page: p, pageSize: ps } })
 })
 
+resource.get('/:id/file', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  const row = await db.prepare('SELECT file_path FROM resources WHERE id = ?').bind(id).first()
+  if (!row) return c.json({ code: 2001, message: '资源不存在' }, 404)
+  if (c.env.BUCKET) {
+    const obj = await c.env.BUCKET.get(row.file_path)
+    if (!obj) return c.json({ code: 2001, message: '文件不存在' }, 404)
+    const fileName = row.file_path.split('-').slice(1).join('-')
+    return new Response(obj.body, { headers: { 'Content-Type': 'application/octet-stream', 'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"` } })
+  }
+  return c.json({ code: 0, message: '文件存储未配置', data: {} }, 501)
+})
+
 resource.get('/:id', async (c) => {
   const db = c.env.DB
   const id = c.req.param('id')
@@ -127,19 +141,6 @@ resource.post('/:id/download', async (c) => {
   if (!row) return c.json({ code: 2001, message: '资源不存在' }, 404)
   await db.prepare('UPDATE resources SET download_count = download_count + 1 WHERE id = ?').bind(id).run()
   return c.json({ code: 0, message: 'success', data: { downloadUrl: `/api/v1/resources/${id}/file` } })
-})
-
-resource.get('/:id/file', async (c) => {
-  const db = c.env.DB
-  const id = c.req.param('id')
-  const row = await db.prepare('SELECT file_path FROM resources WHERE id = ?').bind(id).first()
-  if (!row) return c.json({ code: 2001, message: '资源不存在' }, 404)
-  if (c.env.BUCKET) {
-    const obj = await c.env.BUCKET.get(row.file_path)
-    if (!obj) return c.json({ code: 2001, message: '文件不存在' }, 404)
-    return new Response(obj.body, { headers: { 'Content-Disposition': `attachment; filename="${row.file_path.split('-').slice(1).join('-')}"` } })
-  }
-  return c.json({ code: 0, message: '文件存储未配置', data: {} }, 501)
 })
 
 async function checkAuth(c) {

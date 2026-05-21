@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const authMiddleware = require('../middlewares/auth');
-const { list, detail, create, update, remove, download } = require('../controllers/resourceController');
+const { list, detail, create, update, remove, download, downloadFile } = require('../controllers/resourceController');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '..', '..', 'uploads')),
@@ -20,8 +20,9 @@ const upload = multer({
 });
 
 router.get('/', list);
-router.get('/:id', detail);
 router.post('/', authMiddleware, upload.single('file'), create);
+router.get('/:id/file', authMiddleware, downloadFile);
+router.get('/:id', detail);
 router.put('/:id', authMiddleware, update);
 router.delete('/:id', authMiddleware, remove);
 router.post('/:id/download', authMiddleware, download);

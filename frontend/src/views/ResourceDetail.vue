@@ -60,7 +60,8 @@ async function checkFavoriteStatus() {
   if (!token) return
   try {
     const res = await request.get('/favorites', { params: { page: 1, pageSize: 100 } })
-    isFavorited.value = res.data.list.some(f => f.resource_id === Number(route.params.id) || f.id === Number(route.params.id))
+    const resourceId = Number(route.params.id)
+    isFavorited.value = res.data.list.some(f => f.resource_id === resourceId)
   } catch {}
 }
 
@@ -68,7 +69,25 @@ async function handleDownload() {
   try {
     const res = await resourceStore.downloadResource(route.params.id)
     if (res.downloadUrl) {
-      window.open(res.downloadUrl, '_blank')
+      const response = await fetch(res.downloadUrl, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
+      if (!response.ok) throw new Error('下载失败')
+      const blob = await response.blob()
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let fileName = 'download'
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?(.+)/)
+        if (match) fileName = decodeURIComponent(match[1].replace(/"/g, ''))
+      }
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
     }
     ElMessage.success('下载成功')
   } catch (err) {
