@@ -67,10 +67,10 @@ resource.get('/:id', async (c) => {
   row.view_count = (Number(row.view_count) || 0) + 1
   row.uploader = { id: row.uploader_id, name: row.uploader_name }
   delete row.uploader_name; delete row.uploader_id
-  row = normalizeResource(row)
+  const normalized = normalizeResource(row)
   const tags = await db.prepare('SELECT t.id, t.name FROM tags t INNER JOIN resource_tags rt ON t.id = rt.tag_id WHERE rt.resource_id = ?').bind(id).all()
-  row.tags = tags.results
-  return c.json({ code: 0, message: 'success', data: row })
+  normalized.tags = tags.results
+  return c.json({ code: 0, message: 'success', data: normalized })
 })
 
 resource.post('/', async (c) => {
