@@ -19,15 +19,9 @@ jobs:
       - name: Install Worker Dependencies
         run: cd worker && npm ci
 
-      - name: Migrate D1 Database
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          workingDirectory: 'worker'
-          command: d1 execute course-sharing-db --remote --file=../database/migration-add-resource-files.sql
-
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: 'worker'
