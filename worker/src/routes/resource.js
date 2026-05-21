@@ -22,7 +22,7 @@ resource.get('/', async (c) => {
      FROM resources r LEFT JOIN users u ON r.uploader_id = u.id LEFT JOIN categories c ON r.category_id = c.id
      WHERE ${where} ORDER BY r.created_at DESC LIMIT ? OFFSET ?`
   ).bind(...params, ps, offset).all()
-  return c.json({ code: 0, message: 'success', data: { list: rows.results, total, page: p, pageSize: ps } })
+  return c.json({ code: 0, message: 'success', data: { list: (rows.results || []).map(normalizeResource), total: Number(total) || 0, page: p, pageSize: ps } })
 })
 
 resource.get('/:id/file', async (c) => {
@@ -64,9 +64,10 @@ resource.get('/:id', async (c) => {
   ).bind(id).first()
   if (!row) return c.json({ code: 2001, message: '资源不存在' }, 404)
   await db.prepare('UPDATE resources SET view_count = view_count + 1 WHERE id = ?').bind(id).run()
-  row.view_count += 1
+  row.view_count = (Number(row.view_count) || 0) + 1
   row.uploader = { id: row.uploader_id, name: row.uploader_name }
   delete row.uploader_name; delete row.uploader_id
+  row = normalizeResource(row)
   const tags = await db.prepare('SELECT t.id, t.name FROM tags t INNER JOIN resource_tags rt ON t.id = rt.tag_id WHERE rt.resource_id = ?').bind(id).all()
   row.tags = tags.results
   return c.json({ code: 0, message: 'success', data: row })
@@ -180,6 +181,18 @@ async function checkAuth(c) {
     return { user: decoded }
   } catch {
     return { error: c.json({ code: 401, message: 'Token无效或已过期' }, 401) }
+  }
+}
+
+function normalizeResource(r) {
+  return {
+    ...r,
+    id: Number(r.id) || 0,
+    file_size: Number(r.file_size) || 0,
+    view_count: Number(r.view_count) || 0,
+    download_count: Number(r.download_count) || 0,
+    category_id: r.category_id != null ? Number(r.category_id) : r.category_id,
+    uploader_id: r.uploader_id != null ? Number(r.uploader_id) : r.uploader_id
   }
 }
 

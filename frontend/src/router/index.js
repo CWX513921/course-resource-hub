@@ -37,16 +37,21 @@ const router = createRouter({
 let cachedUser = null
 let cachedToken = null
 
+function getUserInfo() {
+  if (!cachedUser) {
+    cachedUser = JSON.parse(localStorage.getItem('userInfo') || '{}')
+    cachedToken = localStorage.getItem('token')
+  }
+  return cachedUser
+}
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   if (to.meta.requiresAuth && !token) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
   } else if (to.meta.roles) {
-    if (token !== cachedToken) {
-      cachedToken = token
-      cachedUser = JSON.parse(localStorage.getItem('userInfo') || '{}')
-    }
-    if (to.meta.roles.includes(cachedUser.role)) {
+    const userInfo = getUserInfo()
+    if (to.meta.roles.includes(userInfo.role)) {
       next()
     } else {
       next({ name: 'Home' })
@@ -57,10 +62,7 @@ router.beforeEach((to, from, next) => {
 })
 
 router.afterEach(() => {
-  if (!cachedUser && localStorage.getItem('token')) {
-    cachedUser = JSON.parse(localStorage.getItem('userInfo') || '{}')
-    cachedToken = localStorage.getItem('token')
-  }
+  cachedUser = null
 })
 
 export default router

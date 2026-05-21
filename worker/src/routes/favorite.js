@@ -14,7 +14,7 @@ favorite.get('/', async (c) => {
     `SELECT f.id as favorite_id, f.created_at as favorited_at, r.id as resource_id, r.title, r.file_type, r.download_count, r.view_count
      FROM favorites f INNER JOIN resources r ON f.resource_id = r.id WHERE f.user_id = ? ORDER BY f.created_at DESC LIMIT ? OFFSET ?`
   ).bind(user.userId, ps, offset).all()
-  return c.json({ code: 0, message: 'success', data: { list: rows.results, total: countResult.total, page: p, pageSize: ps } })
+  return c.json({ code: 0, message: 'success', data: { list: (rows.results || []).map(f => ({ ...f, resource_id: Number(f.resource_id) || 0, download_count: Number(f.download_count) || 0, view_count: Number(f.view_count) || 0 })), total: Number(countResult.total) || 0, page: p, pageSize: ps } })
 })
 
 favorite.post('/:resourceId', async (c) => {
