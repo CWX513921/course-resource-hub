@@ -2,7 +2,7 @@ name: Deploy Pages
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
   workflow_dispatch:
 
 jobs:
@@ -22,11 +22,11 @@ jobs:
       - name: Build Frontend
         run: cd frontend && npm run build
 
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy to Cloudflare Pages (Production)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: 'frontend'
           wranglerVersion: '3'
-          command: pages deploy dist --project-name=course-sharing
+          command: pages deploy dist --project-name=course-sharing --branch=main
