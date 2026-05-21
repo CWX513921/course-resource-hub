@@ -28,15 +28,31 @@ resource.get('/', async (c) => {
 resource.get('/:id/file', async (c) => {
   const db = c.env.DB
   const id = c.req.param('id')
-  const row = await db.prepare('SELECT file_path FROM resources WHERE id = ?').bind(id).first()
+  const row = await db.prepare('SELECT file_path, file_type FROM resources WHERE id = ?').bind(id).first()
   if (!row) return c.json({ code: 2001, message: '资源不存在' }, 404)
+
+  const fileName = row.file_path.split('-').slice(1).join('-')
+  const mimeTypes = {
+    pdf: 'application/pdf', ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    zip: 'application/zip', rar: 'application/x-rar-compressed'
+  }
+  const contentType = mimeTypes[row.file_type] || 'application/octet-stream'
+
   if (c.env.BUCKET) {
     const obj = await c.env.BUCKET.get(row.file_path)
     if (!obj) return c.json({ code: 2001, message: '文件不存在' }, 404)
-    const fileName = row.file_path.split('-').slice(1).join('-')
-    return new Response(obj.body, { headers: { 'Content-Type': 'application/octet-stream', 'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"` } })
+    return new Response(obj.body, { headers: { 'Content-Type': contentType, 'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"` } })
   }
-  return c.json({ code: 2002, message: '文件存储未配置，请启用R2 Bucket', data: {} }, 501)
+
+  const fileRow = await db.prepare('SELECT file_data FROM resource_files WHERE resource_id = ?').bind(id).first()
+  if (!fileRow) return c.json({ code: 2001, message: '文件数据不存在' }, 404)
+
+  const binaryStr = atob(fileRow.file_data)
+  const bytes = new Uint8Array(binaryStr.length)
+  for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
+  return new Response(bytes, { headers: { 'Content-Type': contentType, 'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"` } })
 })
 
 resource.get('/:id', async (c) => {
@@ -73,13 +89,20 @@ resource.post('/', async (c) => {
 
   const ext = file.name.split('.').pop().toLowerCase()
   const fileKey = `${Date.now()}-${file.name}`
-  if (c.env.BUCKET) {
-    await c.env.BUCKET.put(fileKey, file.stream())
-  }
 
   const result = await db.prepare(
     'INSERT INTO resources (title, description, file_path, file_type, file_size, uploader_id, category_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(title, description, fileKey, ext, file.size, authResult.user.userId, categoryId, 'published').run()
+
+  const resourceId = result.meta.last_row_id
+
+  if (c.env.BUCKET) {
+    await c.env.BUCKET.put(fileKey, file.stream())
+  } else {
+    const arrayBuffer = await file.arrayBuffer()
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+    await db.prepare('INSERT INTO resource_files (resource_id, file_data) VALUES (?, ?)').bind(resourceId, base64).run()
+  }
 
   if (tags) {
     const tagNames = typeof tags === 'string' ? tags.split(',') : [tags]
@@ -90,10 +113,10 @@ resource.post('/', async (c) => {
         const r = await db.prepare('INSERT INTO tags (name) VALUES (?)').bind(tagName.trim()).run()
         tagId = r.meta.last_row_id
       }
-      await db.prepare('INSERT OR IGNORE INTO resource_tags (resource_id, tag_id) VALUES (?, ?)').bind(result.meta.last_row_id, tagId).run()
+      await db.prepare('INSERT OR IGNORE INTO resource_tags (resource_id, tag_id) VALUES (?, ?)').bind(resourceId, tagId).run()
     }
   }
-  return c.json({ code: 0, message: '上传成功', data: { id: result.meta.last_row_id, title } }, 201)
+  return c.json({ code: 0, message: '上传成功', data: { id: resourceId, title } }, 201)
 })
 
 resource.put('/:id', async (c) => {
@@ -123,10 +146,13 @@ resource.delete('/:id', async (c) => {
   if (authResult.error) return authResult.error
   const db = c.env.DB
   const id = c.req.param('id')
-  const existing = await db.prepare('SELECT uploader_id FROM resources WHERE id = ?').bind(id).first()
+  const existing = await db.prepare('SELECT uploader_id, file_path FROM resources WHERE id = ?').bind(id).first()
   if (!existing) return c.json({ code: 2001, message: '资源不存在' }, 404)
   if (existing.uploader_id !== authResult.user.userId && authResult.user.role !== 'admin') {
     return c.json({ code: 403, message: '无权限删除' }, 403)
+  }
+  if (c.env.BUCKET && existing.file_path) {
+    await c.env.BUCKET.delete(existing.file_path)
   }
   await db.prepare('DELETE FROM resources WHERE id = ?').bind(id).run()
   return c.json({ code: 0, message: '删除成功', data: {} })

@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS access_logs;
 DROP TABLE IF EXISTS favorites;
 DROP TABLE IF EXISTS resource_tags;
 DROP TABLE IF EXISTS tags;
+DROP TABLE IF EXISTS resource_files;
 DROP TABLE IF EXISTS resources;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS users;
@@ -77,6 +78,12 @@ CREATE TABLE access_logs (
   ip_address TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE
+);
+
+CREATE TABLE resource_files (
+  resource_id INTEGER PRIMARY KEY,
+  file_data TEXT NOT NULL,
   FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE
 );
 

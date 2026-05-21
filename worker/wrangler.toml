@@ -12,6 +12,7 @@ binding = "DB"
 database_name = "course-sharing-db"
 database_id = "56b7e6d7-7cd4-4579-9058-a588808a8271"
 
-[[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "course-uploads"
+# R2可选，不配置时文件以base64存储在D1的resource_files表中
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "course-uploads"
