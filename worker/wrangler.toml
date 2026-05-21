@@ -12,7 +12,6 @@ binding = "DB"
 database_name = "course-sharing-db"
 database_id = "56b7e6d7-7cd4-4579-9058-a588808a8271"
 
-# R2 需要先在 Cloudflare Dashboard 中启用后取消注释
-# [[r2_buckets]]
-# binding = "BUCKET"
-# bucket_name = "course-uploads"
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "course-uploads"

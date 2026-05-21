@@ -69,7 +69,9 @@ async function handleDownload() {
   try {
     const res = await resourceStore.downloadResource(route.params.id)
     if (res.downloadUrl) {
-      const response = await fetch(res.downloadUrl, {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+      const fullUrl = res.downloadUrl.startsWith('http') ? res.downloadUrl : `${apiBase}${res.downloadUrl.replace(/^\/api\/v1/, '')}`
+      const response = await fetch(fullUrl, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       })
       if (!response.ok) throw new Error('下载失败')

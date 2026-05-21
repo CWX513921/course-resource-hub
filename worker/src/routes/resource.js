@@ -36,7 +36,7 @@ resource.get('/:id/file', async (c) => {
     const fileName = row.file_path.split('-').slice(1).join('-')
     return new Response(obj.body, { headers: { 'Content-Type': 'application/octet-stream', 'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"` } })
   }
-  return c.json({ code: 0, message: '文件存储未配置', data: {} }, 501)
+  return c.json({ code: 2002, message: '文件存储未配置，请启用R2 Bucket', data: {} }, 501)
 })
 
 resource.get('/:id', async (c) => {

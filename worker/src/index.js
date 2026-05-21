@@ -10,7 +10,13 @@ import userRoutes from './routes/user.js'
 
 const app = new Hono()
 
-app.use('*', cors())
+app.use('*', cors({
+  origin: ['https://dd7878.cc.cd', 'http://localhost:5173'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  exposeHeaders: ['Content-Disposition'],
+  maxAge: 86400
+}))
 
 app.get('/api/health', (c) => {
   return c.json({ code: 0, message: 'success', data: { status: 'ok', timestamp: new Date().toISOString() } })
