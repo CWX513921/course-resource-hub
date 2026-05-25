@@ -17,7 +17,7 @@ jobs:
           node-version: '20'
 
       - name: Install Frontend Dependencies
-        run: cd frontend && npm ci
+        run: cd frontend && npm install
 
       - name: Build Frontend
         run: cd frontend && npm run build
@@ -29,5 +29,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: 'frontend'
           wranglerVersion: '3'
-          nodeVersion: '20'
           command: pages deploy dist --project-name=course-sharing --branch=main
