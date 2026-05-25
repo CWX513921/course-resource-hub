@@ -28,5 +28,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: 'frontend'
-          wranglerVersion: '3'
+          wranglerVersion: '4'
           command: pages deploy dist --project-name=course-sharing --branch=main
