@@ -65,7 +65,10 @@
           </el-dialog>
           <el-tree :data="categoryTree" :props="{ label: 'name', children: 'children' }" default-expand-all>
             <template #default="{ data }">
-              <span class="cat-node">{{ data.name }}</span>
+              <span class="cat-node-row">
+                <span class="cat-node">{{ data.name }}</span>
+                <button class="cat-delete" @click.stop="handleDeleteCategory(data)">删除</button>
+              </span>
             </template>
           </el-tree>
           <div v-if="categoryTree.length === 0" class="empty-cat">暂无分类</div>
@@ -80,7 +83,7 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } 
 import * as echarts from 'echarts'
 import request from '@/utils/request'
 import { useCategoryStore } from '@/stores/category'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const categoryStore = useCategoryStore()
 const categoryTree = computed(() => categoryStore.tree)
@@ -128,7 +131,7 @@ async function fetchTopDownloaded() {
 async function fetchCategoryStats() {
   try {
     const res = await request.get('/stats/categories')
-    categoryData.value = (res.data || []).filter(item => item.resource_count > 0)
+    categoryData.value = res.data || []
   } catch {}
 }
 
@@ -241,6 +244,17 @@ async function handleAddCategory() {
     addingCategory.value = false
   }
 }
+
+async function handleDeleteCategory(node) {
+  try {
+    await ElMessageBox.confirm(`确定删除分类"${node.name}"吗？`, '确认删除', { type: 'warning' })
+    await request.delete(`/categories/${node.id}`)
+    ElMessage.success('删除成功')
+    await categoryStore.fetchTree()
+  } catch (err) {
+    if (err !== 'cancel') ElMessage.error(err.message || '删除失败')
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -346,9 +360,33 @@ async function handleAddCategory() {
   margin-bottom: 16px;
 }
 
+.cat-node-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  padding-right: 8px;
+}
+
 .cat-node {
   color: $text-secondary;
   font-size: 14px;
+}
+
+.cat-delete {
+  background: none;
+  border: none;
+  color: $text-muted;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all $transition-fast;
+
+  &:hover { color: $danger; }
+}
+
+.el-tree-node__content:hover .cat-delete {
+  opacity: 1;
 }
 
 .empty-cat {

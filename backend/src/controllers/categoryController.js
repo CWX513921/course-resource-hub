@@ -22,4 +22,15 @@ async function create(req, res, next) {
   }
 }
 
-module.exports = { getTree, create };
+async function remove(req, res, next) {
+  try {
+    const id = req.params.id;
+    await categoryService.remove(id);
+    res.json({ code: 0, message: '删除成功', data: {} });
+  } catch (err) {
+    if (err.code) return res.status(err.code === 400 ? 400 : 500).json(err);
+    next(err);
+  }
+}
+
+module.exports = { getTree, create, remove };

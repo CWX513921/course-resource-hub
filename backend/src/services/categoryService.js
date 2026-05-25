@@ -27,4 +27,16 @@ async function create({ name, parentId, sortOrder }) {
   return { id: result.insertId, name };
 }
 
-module.exports = { getTree, create };
+async function remove(id) {
+  const [children] = await pool.execute('SELECT id FROM categories WHERE parent_id = ?', [id]);
+  if (children.length > 0) {
+    throw { code: 400, message: '该分类下有子分类，无法删除' };
+  }
+  const [resources] = await pool.execute('SELECT id FROM resources WHERE category_id = ?', [id]);
+  if (resources.length > 0) {
+    throw { code: 400, message: '该分类下有资源，无法删除' };
+  }
+  await pool.execute('DELETE FROM categories WHERE id = ?', [id]);
+}
+
+module.exports = { getTree, create, remove };

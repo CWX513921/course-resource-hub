@@ -34,11 +34,11 @@ stats.get('/resources/top-downloaded', async (c) => {
 stats.get('/categories', async (c) => {
   const db = c.env.DB
   const rows = await db.prepare(
-    `SELECT c.name as category_name, COUNT(r.id) as resource_count FROM categories c LEFT JOIN resources r ON c.id = r.category_id AND r.status = 'published' WHERE c.parent_id IS NULL GROUP BY c.id, c.name ORDER BY resource_count DESC`
+    `SELECT c.id, c.name as category_name, c.parent_id, COUNT(r.id) as resource_count FROM categories c LEFT JOIN resources r ON c.id = r.category_id AND r.status = 'published' GROUP BY c.id, c.name, c.parent_id ORDER BY resource_count DESC`
   ).all()
   return c.json({
     code: 0, message: 'success',
-    data: (rows.results || []).map(i => ({ category_name: i.category_name, resource_count: Number(i.resource_count) || 0 })).filter(i => i.resource_count > 0)
+    data: (rows.results || []).map(i => ({ id: Number(i.id) || 0, category_name: i.category_name, resource_count: Number(i.resource_count) || 0, parent_id: i.parent_id != null ? Number(i.parent_id) : null }))
   })
 })
 

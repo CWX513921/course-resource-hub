@@ -18,11 +18,10 @@ async function getTopDownloaded(limit = 10) {
 
 async function getCategoryStats() {
   const [rows] = await pool.execute(
-    `SELECT c.name as category_name, COUNT(r.id) as resource_count
+    `SELECT c.id, c.name as category_name, c.parent_id, COUNT(r.id) as resource_count
      FROM categories c
      LEFT JOIN resources r ON c.id = r.category_id AND r.status = 'published'
-     WHERE c.parent_id IS NULL
-     GROUP BY c.id, c.name
+     GROUP BY c.id, c.name, c.parent_id
      ORDER BY resource_count DESC`
   );
   return rows;
