@@ -11,8 +11,9 @@
     "db:seed:local": "wrangler d1 execute COURSE_DB --file=../database/seeds.sql --local"
   },
   "dependencies": {
-    "hono": "^4.0.0",
     "bcryptjs": "^2.4.3",
+    "hono": "^4.0.0",
+    "hono-rate-limiter": "^0.5.3",
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {

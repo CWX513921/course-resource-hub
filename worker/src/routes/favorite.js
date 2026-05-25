@@ -17,6 +17,15 @@ favorite.get('/', async (c) => {
   return c.json({ code: 0, message: 'success', data: { list: (rows.results || []).map(f => ({ ...f, resource_id: Number(f.resource_id) || 0, download_count: Number(f.download_count) || 0, view_count: Number(f.view_count) || 0 })), total: Number(countResult.total) || 0, page: p, pageSize: ps } })
 })
 
+favorite.get('/:resourceId/check', async (c) => {
+  const user = await getAuthUser(c)
+  if (!user) return c.json({ code: 401, message: '未登录' }, 401)
+  const db = c.env.DB
+  const resourceId = c.req.param('resourceId')
+  const row = await db.prepare('SELECT id FROM favorites WHERE user_id = ? AND resource_id = ?').bind(user.userId, resourceId).first()
+  return c.json({ code: 0, message: 'success', data: { favorited: !!row } })
+})
+
 favorite.post('/:resourceId', async (c) => {
   const user = await getAuthUser(c)
   if (!user) return c.json({ code: 401, message: '未登录' }, 401)

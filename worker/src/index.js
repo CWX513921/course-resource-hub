@@ -1,11 +1,13 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { rateLimiter } from 'hono-rate-limiter'
 import authRoutes from './routes/auth.js'
 import resourceRoutes from './routes/resource.js'
 import categoryRoutes from './routes/category.js'
 import favoriteRoutes from './routes/favorite.js'
 import statsRoutes from './routes/stats.js'
 import userRoutes from './routes/user.js'
+import commentRoutes from './routes/comment.js'
 
 const app = new Hono()
 
@@ -17,6 +19,12 @@ app.use('*', cors({
   maxAge: 86400
 }))
 
+const authLimiter = rateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  keyGenerator: (c) => c.req.header('x-forwarded-for') || c.req.header('cf-connecting-ip') || 'unknown'
+})
+
 app.get('/api/health', async (c) => {
   try {
     await c.env.DB.prepare('SELECT 1').first()
@@ -26,12 +34,13 @@ app.get('/api/health', async (c) => {
   }
 })
 
-app.route('/api/v1/auth', authRoutes)
+app.route('/api/v1/auth', authLimiter, authRoutes)
 app.route('/api/v1/resources', resourceRoutes)
 app.route('/api/v1/categories', categoryRoutes)
 app.route('/api/v1/favorites', favoriteRoutes)
 app.route('/api/v1/stats', statsRoutes)
 app.route('/api/v1/users', userRoutes)
+app.route('/api/v1/comments', commentRoutes)
 
 app.onError((err, c) => {
   console.error(`[ERROR] ${err.stack || err.message}`)

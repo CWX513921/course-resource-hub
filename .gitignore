@@ -10,5 +10,6 @@ frontend/node_modules/
 frontend/dist/
 worker/node_modules/
 worker/.wrangler/
+worker/.tmp-build/
 *.log
 .env

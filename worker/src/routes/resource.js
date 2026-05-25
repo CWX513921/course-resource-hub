@@ -5,22 +5,31 @@ const resource = new Hono()
 
 resource.get('/', async (c) => {
   const db = c.env.DB
-  const { category, tag, keyword, page = '1', pageSize = '20' } = c.req.query()
+  const { category, tag, keyword, page = '1', pageSize = '20', status, uploaderId } = c.req.query()
   const p = Number(page)
   const ps = Number(pageSize)
   const offset = (p - 1) * ps
 
-  let where = 'r.status = ?'
-  const params = ['published']
-  if (category) { where += ' AND r.category_id = ?'; params.push(category) }
-  if (keyword) { where += ' AND (r.title LIKE ? OR r.description LIKE ?)'; params.push(`%${keyword}%`, `%${keyword}%`) }
+  let where = []
+  const params = []
+  if (status && status !== 'all') {
+    where.push('r.status = ?')
+    params.push(status)
+  } else if (!status) {
+    where.push('r.status = ?')
+    params.push('published')
+  }
+  if (category) { where.push('r.category_id = ?'); params.push(category) }
+  if (keyword) { where.push('(r.title LIKE ? OR r.description LIKE ?)'); params.push(`%${keyword}%`, `%${keyword}%`) }
+  if (uploaderId) { where.push('r.uploader_id = ?'); params.push(uploaderId) }
+  const whereClause = where.length > 0 ? where.join(' AND ') : '1=1'
 
-  const countResult = await db.prepare(`SELECT COUNT(*) as total FROM resources r WHERE ${where}`).bind(...params).first()
+  const countResult = await db.prepare(`SELECT COUNT(*) as total FROM resources r WHERE ${whereClause}`).bind(...params).first()
   const total = countResult.total
   const rows = await db.prepare(
     `SELECT r.id, r.title, r.description, r.file_type, r.file_size, r.view_count, r.download_count, r.status, r.created_at, u.username as uploader_name, c.name as category_name
      FROM resources r LEFT JOIN users u ON r.uploader_id = u.id LEFT JOIN categories c ON r.category_id = c.id
-     WHERE ${where} ORDER BY r.created_at DESC LIMIT ? OFFSET ?`
+     WHERE ${whereClause} ORDER BY r.created_at DESC LIMIT ? OFFSET ?`
   ).bind(...params, ps, offset).all()
   return c.json({ code: 0, message: 'success', data: { list: (rows.results || []).map(normalizeResource), total: Number(total) || 0, page: p, pageSize: ps } })
 })
@@ -95,6 +104,10 @@ resource.post('/', async (c) => {
   if (!title || !file) return c.json({ code: 400, message: '标题和文件为必填项' }, 400)
 
   const ext = file.name.split('.').pop().toLowerCase()
+  const allowedExtensions = ['pdf', 'ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar']
+  if (!allowedExtensions.includes(ext)) {
+    return c.json({ code: 400, message: '不支持的文件类型' }, 400)
+  }
   const fileKey = `${Date.now()}-${file.name}`
 
   const result = await db.prepare(
@@ -166,6 +179,9 @@ resource.delete('/:id', async (c) => {
   if (c.env.BUCKET && existing.file_path) {
     await c.env.BUCKET.delete(existing.file_path)
   }
+  try {
+    await db.prepare('DELETE FROM resource_files WHERE resource_id = ?').bind(id).run()
+  } catch {}
   await db.prepare('DELETE FROM resources WHERE id = ?').bind(id).run()
   return c.json({ code: 0, message: '删除成功', data: {} })
 })
