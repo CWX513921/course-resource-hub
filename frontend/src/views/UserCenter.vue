@@ -2,7 +2,7 @@
   <div class="user-center">
     <el-tabs v-model="activeTab">
       <el-tab-pane label="我的收藏" name="favorites">
-        <el-table :data="favorites" v-loading="loading" stripe>
+        <el-table :data="favorites" v-loading="loading">
           <el-table-column prop="title" label="资源标题" min-width="200" />
           <el-table-column prop="file_type" label="类型" width="80">
             <template #default="{ row }">{{ row.file_type?.toUpperCase() }}</template>
@@ -18,11 +18,22 @@
         </el-table>
       </el-tab-pane>
       <el-tab-pane label="个人信息" name="info">
-        <el-descriptions :column="1" border v-if="userInfo">
-          <el-descriptions-item label="用户名">{{ userInfo.username }}</el-descriptions-item>
-          <el-descriptions-item label="角色">{{ roleLabel }}</el-descriptions-item>
-        </el-descriptions>
-        <el-button type="danger" style="margin-top:16px" @click="handleLogout">退出登录</el-button>
+        <div class="info-card" v-if="userInfo">
+          <div class="info-row">
+            <span class="info-label">用户名</span>
+            <span class="info-value">{{ userInfo.username }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">角色</span>
+            <span class="info-value">{{ roleLabel }}</span>
+          </div>
+        </div>
+        <button class="logout-action" @click="handleLogout">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M5 2H2.5a1 1 0 00-1 1v8a1 1 0 001 1H5M9.5 9.5L12.5 7l-3-2.5M12 7H5"/>
+          </svg>
+          退出登录
+        </button>
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -75,8 +86,60 @@ function handleLogout() {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@use '@/assets/styles/variables' as *;
+
 .user-center {
-  padding: 16px;
+  max-width: 800px;
+}
+
+.info-card {
+  background: $bg-surface;
+  border: 1px solid $border-micro;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid $border-micro;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.info-label {
+  width: 80px;
+  color: $text-tertiary;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.info-value {
+  color: $text-primary;
+  font-size: 14px;
+}
+
+.logout-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: $radius-sm;
+  color: $danger;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
+  }
 }
 </style>

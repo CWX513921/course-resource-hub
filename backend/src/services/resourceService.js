@@ -1,4 +1,6 @@
 const pool = require('../models/db');
+const fs = require('fs');
+const path = require('path');
 
 async function create({ title, description, filePath, fileType, fileSize, uploaderId, categoryId, status }) {
   const [result] = await pool.execute(
@@ -32,9 +34,16 @@ async function findById(id) {
   return resource;
 }
 
-async function findList({ category, tag, keyword, page = 1, pageSize = 20, status } = {}) {
-  let where = ['r.status = ?'];
-  let params = [status || 'published'];
+async function findList({ category, tag, keyword, page = 1, pageSize = 20, status, uploaderId } = {}) {
+  let where = [];
+  let params = [];
+  if (status && status !== 'all') {
+    where.push('r.status = ?');
+    params.push(status);
+  } else if (!status) {
+    where.push('r.status = ?');
+    params.push('published');
+  }
   if (category) {
     where.push('r.category_id = ?');
     params.push(category);
@@ -47,7 +56,11 @@ async function findList({ category, tag, keyword, page = 1, pageSize = 20, statu
     where.push('EXISTS (SELECT 1 FROM resource_tags rt JOIN tags t ON rt.tag_id = t.id WHERE rt.resource_id = r.id AND t.name = ?)');
     params.push(tag);
   }
-  const whereClause = where.join(' AND ');
+  if (uploaderId) {
+    where.push('r.uploader_id = ?');
+    params.push(uploaderId);
+  }
+  const whereClause = where.length > 0 ? where.join(' AND ') : '1=1';
   const countParams = [...params];
   const [countResult] = await pool.execute(
     `SELECT COUNT(*) as total FROM resources r WHERE ${whereClause}`,
@@ -83,6 +96,13 @@ async function update(id, { title, description, categoryId, status }) {
 }
 
 async function remove(id) {
+  const [rows] = await pool.execute('SELECT file_path FROM resources WHERE id = ?', [id]);
+  if (rows.length > 0 && rows[0].file_path) {
+    const filePath = path.resolve(rows[0].file_path);
+    fs.unlink(filePath, (err) => {
+      if (err && err.code !== 'ENOENT') console.error(`[WARN] 删除文件失败: ${filePath}`, err.message);
+    });
+  }
   await pool.execute('DELETE FROM resources WHERE id = ?', [id]);
 }
 
@@ -94,4 +114,20 @@ async function incrementView(id) {
   await pool.execute('UPDATE resources SET view_count = view_count + 1 WHERE id = ?', [id]);
 }
 
-module.exports = { create, findById, findList, update, remove, incrementDownload, incrementView };
+async function attachTags(resourceId, tagNames) {
+  for (const tagName of tagNames) {
+    const trimmed = tagName.trim();
+    if (!trimmed) continue;
+    const [existing] = await pool.execute('SELECT id FROM tags WHERE name = ?', [trimmed]);
+    let tagId;
+    if (existing.length > 0) {
+      tagId = existing[0].id;
+    } else {
+      const [r] = await pool.execute('INSERT INTO tags (name) VALUES (?)', [trimmed]);
+      tagId = r.insertId;
+    }
+    await pool.execute('INSERT IGNORE INTO resource_tags (resource_id, tag_id) VALUES (?, ?)', [resourceId, tagId]);
+  }
+}
+
+module.exports = { create, findById, findList, update, remove, incrementDownload, incrementView, attachTags };

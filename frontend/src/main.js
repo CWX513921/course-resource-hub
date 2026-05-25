@@ -4,6 +4,8 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import '@/assets/styles/element-dark.scss'
+import '@/assets/styles/global.scss'
 import App from './App.vue'
 import router from './router'
 

@@ -1,0 +1,294 @@
+@use 'sass:color';
+@use 'variables' as *;
+
+:root {
+  --el-color-primary: #{$accent-indigo};
+  --el-color-primary-light-3: #{color.mix(white, $accent-indigo, 30%)};
+  --el-color-primary-light-5: #{color.mix(white, $accent-indigo, 50%)};
+  --el-color-primary-light-7: #{color.mix(white, $accent-indigo, 70%)};
+  --el-color-primary-light-8: #{color.mix(white, $accent-indigo, 80%)};
+  --el-color-primary-light-9: #{color.mix(white, $accent-indigo, 90%)};
+  --el-color-primary-dark-2: #{color.mix(black, $accent-indigo, 20%)};
+
+  --el-color-success: #{$success};
+  --el-color-warning: #{$warning};
+  --el-color-danger: #{$danger};
+  --el-color-info: #{$text-tertiary};
+
+  --el-bg-color: #{$bg-canvas};
+  --el-bg-color-overlay: #{$bg-elevated};
+  --el-bg-color-page: #{$bg-canvas};
+
+  --el-text-color-primary: #{$text-primary};
+  --el-text-color-regular: #{$text-secondary};
+  --el-text-color-secondary: #{$text-tertiary};
+  --el-text-color-placeholder: #{$text-muted};
+
+  --el-border-color: #{$border-micro};
+  --el-border-color-light: #{$border-micro};
+  --el-border-color-lighter: #{$border-micro};
+
+  --el-fill-color: #{$bg-surface};
+  --el-fill-color-light: #{$bg-surface-hover};
+  --el-fill-color-lighter: #{$bg-surface-hover};
+  --el-fill-color-blank: #{$bg-surface};
+
+  --el-mask-color: rgba(0, 0, 0, 0.7);
+
+  --el-box-shadow: #{$shadow-md};
+  --el-box-shadow-light: #{$shadow-sm};
+  --el-box-shadow-lighter: #{$shadow-sm};
+
+  --el-border-radius-base: #{$radius-sm};
+  --el-border-radius-small: #{$radius-sm};
+
+  --el-font-family: #{$font-family};
+  --el-font-size-base: 14px;
+
+  --el-menu-bg-color: #{$bg-surface};
+  --el-menu-text-color: #{$text-secondary};
+  --el-menu-active-color: #{$accent-indigo};
+  --el-menu-hover-bg-color: #{$bg-surface-hover};
+  --el-menu-item-height: 44px;
+
+  --el-table-bg-color: #{$bg-surface};
+  --el-table-tr-bg-color: #{$bg-surface};
+  --el-table-header-bg-color: #{$bg-elevated};
+  --el-table-row-hover-bg-color: #{$bg-surface-hover};
+  --el-table-border-color: #{$border-micro};
+  --el-table-text-color: #{$text-secondary};
+  --el-table-header-text-color: #{$text-primary};
+
+  --el-card-bg-color: #{$bg-surface};
+  --el-card-border-color: #{$border-micro};
+
+  --el-dialog-bg-color: #{$bg-elevated};
+  --el-dialog-box-shadow: #{$shadow-lg};
+
+  --el-input-bg-color: #{$bg-surface};
+  --el-input-border-color: #{$border-subtle};
+  --el-input-text-color: #{$text-primary};
+  --el-input-placeholder-color: #{$text-muted};
+
+  --el-tag-bg-color: #{$bg-surface-hover};
+
+  --el-pagination-bg-color: transparent;
+  --el-pagination-button-bg-color: #{$bg-surface-hover};
+  --el-pagination-hover-color: #{$accent-indigo};
+
+  --el-descriptions-table-border: #{$border-micro};
+  --el-descriptions-item-bordered-label-background: #{$bg-elevated};
+}
+
+.el-card {
+  border: 1px solid $border-micro;
+  backdrop-filter: blur(12px);
+  transition: all $transition-normal;
+
+  .el-card__header {
+    border-bottom: 1px solid $border-micro;
+    color: $text-primary;
+  }
+}
+
+.el-button--primary {
+  background: linear-gradient(135deg, $accent-indigo, #{$accent-purple});
+  border: none;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.2);
+  transition: all $transition-fast;
+
+  &:hover {
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.el-input {
+  .el-input__wrapper {
+    background: $bg-surface;
+    border: 1px solid $border-subtle;
+    box-shadow: none;
+    transition: all $transition-fast;
+
+    &:hover {
+      border-color: $border-hover;
+    }
+
+    &.is-focus {
+      border-color: $accent-indigo;
+      box-shadow: 0 0 0 2px $accent-indigo-dim;
+    }
+  }
+}
+
+.el-table {
+  --el-table-border-color: #{$border-micro};
+  background: $bg-surface;
+  border: 1px solid $border-micro;
+  border-radius: $radius-md;
+  overflow: hidden;
+
+  th.el-table__cell {
+    background: $bg-elevated !important;
+    color: $text-primary !important;
+    font-weight: 600;
+  }
+
+  tr {
+    background: $bg-surface !important;
+    transition: background $transition-fast;
+  }
+
+  tr:hover > td.el-table__cell {
+    background: $bg-surface-hover !important;
+  }
+}
+
+.el-menu {
+  border-right: none !important;
+
+  .el-menu-item {
+    border-radius: $radius-sm;
+    margin: 2px 8px;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $bg-surface-hover !important;
+      color: $text-primary !important;
+    }
+
+    &.is-active {
+      background: $accent-indigo-dim !important;
+      color: $accent-indigo !important;
+      font-weight: 600;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 60%;
+        background: $accent-indigo;
+        border-radius: 0 2px 2px 0;
+      }
+    }
+  }
+}
+
+.el-dialog {
+  border: 1px solid $border-subtle;
+  border-radius: $radius-lg !important;
+
+  .el-dialog__header {
+    border-bottom: 1px solid $border-micro;
+  }
+
+  .el-dialog__title {
+    color: $text-primary;
+    font-weight: 600;
+  }
+}
+
+.el-tag {
+  border: 1px solid $border-micro;
+  border-radius: $radius-sm;
+}
+
+.el-tabs {
+  .el-tabs__item {
+    color: $text-tertiary;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $text-primary;
+    }
+
+    &.is-active {
+      color: $accent-indigo;
+    }
+  }
+
+  .el-tabs__active-bar {
+    background: linear-gradient(90deg, $accent-indigo, $accent-purple);
+  }
+}
+
+.el-pagination {
+  .el-pager li {
+    background: transparent;
+    color: $text-tertiary;
+    border-radius: $radius-sm;
+
+    &:hover {
+      color: $accent-indigo;
+    }
+
+    &.is-active {
+      background: $accent-indigo-dim;
+      color: $accent-indigo;
+    }
+  }
+}
+
+.el-select-dropdown {
+  background: $bg-elevated !important;
+  border: 1px solid $border-subtle !important;
+
+  .el-select-dropdown__item {
+    color: $text-secondary;
+
+    &.is-selected {
+      color: $accent-indigo;
+    }
+  }
+}
+
+.el-form-item__label {
+  color: $text-secondary !important;
+}
+
+.el-descriptions {
+  .el-descriptions__label {
+    color: $text-tertiary !important;
+    background: $bg-elevated !important;
+  }
+
+  .el-descriptions__content {
+    color: $text-primary !important;
+    background: $bg-surface !important;
+  }
+}
+
+.el-empty__description p {
+  color: $text-tertiary;
+}
+
+.el-tree {
+  background: transparent !important;
+  color: $text-secondary;
+
+  .el-tree-node__content:hover {
+    background: $bg-surface-hover;
+  }
+
+  .el-tree-node.is-current > .el-tree-node__content {
+    background: $accent-indigo-dim;
+    color: $accent-indigo;
+  }
+}
+
+.el-statistic {
+  .el-statistic__head {
+    color: $text-tertiary;
+  }
+
+  .el-statistic__content {
+    color: $text-primary;
+  }
+}

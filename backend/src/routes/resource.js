@@ -9,13 +9,33 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '..', '..', 'uploads')),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
 });
+const allowedExtensions = ['.pdf', '.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx', '.zip', '.rar'];
+const allowedMimeTypes = [
+  'application/pdf',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/zip',
+  'application/x-rar-compressed',
+  'application/octet-stream'
+];
+
 const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.pdf', '.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx', '.zip', '.rar'];
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, allowedTypes.includes(ext));
+    const mime = file.mimetype;
+    if (!allowedExtensions.includes(ext)) {
+      return cb(new Error('不支持的文件类型'));
+    }
+    if (!allowedMimeTypes.includes(mime)) {
+      return cb(new Error('文件MIME类型不合法'));
+    }
+    cb(null, true);
   }
 });
 

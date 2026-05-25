@@ -5,8 +5,8 @@ const fs = require('fs');
 
 async function list(req, res, next) {
   try {
-    const { category, tag, keyword, page, pageSize } = req.query;
-    const result = await resourceService.findList({ category, tag, keyword, page, pageSize });
+    const { category, tag, keyword, page, pageSize, uploaderId } = req.query;
+    const result = await resourceService.findList({ category, tag, keyword, page, pageSize, uploaderId });
     res.json({ code: 0, message: 'success', data: result });
   } catch (err) {
     next(err);
@@ -51,18 +51,7 @@ async function create(req, res, next) {
     });
     if (tags) {
       const tagNames = typeof tags === 'string' ? tags.split(',') : tags;
-      const pool = require('../models/db');
-      for (const tagName of tagNames) {
-        const [existing] = await pool.execute('SELECT id FROM tags WHERE name = ?', [tagName.trim()]);
-        let tagId;
-        if (existing.length > 0) {
-          tagId = existing[0].id;
-        } else {
-          const [r] = await pool.execute('INSERT INTO tags (name) VALUES (?)', [tagName.trim()]);
-          tagId = r.insertId;
-        }
-        await pool.execute('INSERT IGNORE INTO resource_tags (resource_id, tag_id) VALUES (?, ?)', [result.id, tagId]);
-      }
+      await resourceService.attachTags(result.id, tagNames);
     }
     res.status(201).json({ code: 0, message: '上传成功', data: result });
   } catch (err) {

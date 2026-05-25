@@ -1,11 +1,14 @@
 <template>
   <div class="dashboard-page">
-    <div class="dashboard-header">
+    <div class="page-header">
       <h2>教师工作台</h2>
-      <el-button type="primary" @click="openUploadDialog">上传资源</el-button>
+      <button class="upload-trigger" @click="openUploadDialog">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 2v6M4 5l3-3 3 3M2 10h10"/></svg>
+        上传资源
+      </button>
     </div>
 
-    <el-dialog v-model="showUploadDialog" title="上传资源" width="600px" destroy-on-close>
+    <el-dialog v-model="showUploadDialog" title="上传资源" width="560px" destroy-on-close>
       <el-form ref="uploadFormRef" :model="uploadForm" :rules="uploadRules" label-width="80px">
         <el-form-item label="标题" prop="title">
           <el-input v-model="uploadForm.title" placeholder="请输入资源标题" />
@@ -27,12 +30,15 @@
         </el-form-item>
       </el-form>
       <template #footer>
+        <div v-if="uploading" class="upload-progress">
+          <el-progress :percentage="uploadProgress" :stroke-width="6" />
+        </div>
         <el-button @click="showUploadDialog = false">取消</el-button>
         <el-button type="primary" :loading="uploading" @click="handleUpload">上传</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="showEditDialog" title="编辑资源" width="600px" destroy-on-close>
+    <el-dialog v-model="showEditDialog" title="编辑资源" width="560px" destroy-on-close>
       <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="80px">
         <el-form-item label="标题" prop="title">
           <el-input v-model="editForm.title" placeholder="请输入资源标题" />
@@ -57,7 +63,7 @@
       </template>
     </el-dialog>
 
-    <el-table :data="myResources" v-loading="loading" stripe>
+    <el-table :data="myResources" v-loading="loading">
       <el-table-column prop="title" label="标题" min-width="200" />
       <el-table-column prop="file_type" label="类型" width="80">
         <template #default="{ row }">{{ row.file_type?.toUpperCase() }}</template>
@@ -83,10 +89,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useCategoryStore } from '@/stores/category'
+import { useUserStore } from '@/stores/user'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const categoryStore = useCategoryStore()
+const userStore = useUserStore()
 const loading = ref(false)
 const uploading = ref(false)
 const editing = ref(false)
@@ -97,6 +105,7 @@ const uploadRef = ref(null)
 const editFormRef = ref(null)
 const myResources = ref([])
 const selectedFile = ref(null)
+const uploadProgress = ref(0)
 
 const uploadForm = reactive({ title: '', description: '', categoryId: '', tags: [] })
 const editForm = reactive({ id: null, title: '', description: '', categoryId: '', status: 'published' })
@@ -117,7 +126,11 @@ onMounted(async () => {
 async function fetchMyResources() {
   loading.value = true
   try {
-    const res = await request.get('/resources', { params: { pageSize: 100 } })
+    const params = { pageSize: 100, status: 'all' }
+    if (userStore.userInfo?.id) {
+      params.uploaderId = userStore.userInfo.id
+    }
+    const res = await request.get('/resources', { params })
     myResources.value = res.data.list
   } finally {
     loading.value = false
@@ -137,6 +150,7 @@ async function handleUpload() {
   await uploadFormRef.value.validate()
   if (!selectedFile.value) return ElMessage.warning('请选择文件')
   uploading.value = true
+  uploadProgress.value = 0
   try {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
@@ -144,7 +158,12 @@ async function handleUpload() {
     formData.append('description', uploadForm.description || '')
     formData.append('categoryId', uploadForm.categoryId || 1)
     if (uploadForm.tags.length) formData.append('tags', uploadForm.tags.join(','))
-    await request.post('/resources', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    await request.post('/resources', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => {
+        if (e.total) uploadProgress.value = Math.round((e.loaded / e.total) * 100)
+      }
+    })
     ElMessage.success('上传成功')
     showUploadDialog.value = false
     await fetchMyResources()
@@ -193,14 +212,50 @@ async function handleDelete(row) {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@use '@/assets/styles/variables' as *;
+
 .dashboard-page {
-  padding: 16px;
+  max-width: 1100px;
 }
-.dashboard-header {
+
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+
+  h2 {
+    color: $text-primary;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+}
+
+.upload-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, $accent-indigo, $accent-purple);
+  border: none;
+  border-radius: $radius-sm;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.2);
+  transition: all $transition-fast;
+
+  &:hover {
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.35);
+    transform: translateY(-1px);
+  }
+}
+
+.upload-progress {
+  margin-bottom: 12px;
 }
 </style>

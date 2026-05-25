@@ -34,4 +34,15 @@ async function listFavorites(req, res, next) {
   }
 }
 
-module.exports = { addFavorite, removeFavorite, listFavorites };
+async function checkFavorite(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const resourceId = req.params.resourceId;
+    const favorited = await favoriteService.isFavorited(userId, resourceId);
+    res.json({ code: 0, message: 'success', data: { favorited } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { addFavorite, removeFavorite, listFavorites, checkFavorite };

@@ -2,28 +2,26 @@
   <div class="admin-page">
     <el-tabs v-model="activeTab">
       <el-tab-pane label="统计概览" name="stats">
-        <el-row :gutter="16" class="stats-cards">
-          <el-col :span="6" v-for="(item, key) in overview" :key="key">
-            <el-card shadow="hover">
-              <el-statistic :title="statLabels[key]" :value="item" />
-            </el-card>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16" style="margin-top:16px">
-          <el-col :span="12">
-            <el-card header="下载量Top10资源">
-              <div ref="barChartRef" style="height:300px"></div>
-            </el-card>
-          </el-col>
-          <el-col :span="12">
-            <el-card header="分类资源数量">
-              <div ref="pieChartRef" style="height:300px"></div>
-            </el-card>
-          </el-col>
-        </el-row>
+        <div class="stats-grid">
+          <div class="stat-card" v-for="(item, key) in overview" :key="key">
+            <div class="stat-shimmer"></div>
+            <span class="stat-label">{{ statLabels[key] }}</span>
+            <span class="stat-value">{{ item }}</span>
+          </div>
+        </div>
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-title">下载量 Top10 资源</div>
+            <div ref="barChartRef" class="chart-container"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">分类资源数量</div>
+            <div ref="pieChartRef" class="chart-container"></div>
+          </div>
+        </div>
       </el-tab-pane>
       <el-tab-pane label="用户管理" name="users">
-        <el-table :data="users" v-loading="usersLoading" stripe>
+        <el-table :data="users" v-loading="usersLoading">
           <el-table-column prop="id" label="ID" width="60" />
           <el-table-column prop="username" label="用户名" width="120" />
           <el-table-column prop="email" label="邮箱" min-width="180" />
@@ -46,6 +44,33 @@
           </el-table-column>
         </el-table>
       </el-tab-pane>
+      <el-tab-pane label="分类管理" name="categories">
+        <div class="category-manage">
+          <div class="category-actions">
+            <el-button type="primary" size="small" @click="showAddCategory = true">添加分类</el-button>
+          </div>
+          <el-dialog v-model="showAddCategory" title="添加分类" width="400px" destroy-on-close>
+            <el-form :model="categoryForm" label-width="80px">
+              <el-form-item label="名称">
+                <el-input v-model="categoryForm.name" placeholder="分类名称" />
+              </el-form-item>
+              <el-form-item label="父分类">
+                <el-cascader v-model="categoryForm.parentId" :options="categoryTree" :props="{ value: 'id', label: 'name', children: 'children', emitPath: false, checkStrictly: true }" placeholder="顶级分类" clearable change-on-select />
+              </el-form-item>
+            </el-form>
+            <template #footer>
+              <el-button @click="showAddCategory = false">取消</el-button>
+              <el-button type="primary" :loading="addingCategory" @click="handleAddCategory">添加</el-button>
+            </template>
+          </el-dialog>
+          <el-tree :data="categoryTree" :props="{ label: 'name', children: 'children' }" default-expand-all>
+            <template #default="{ data }">
+              <span class="cat-node">{{ data.name }}</span>
+            </template>
+          </el-tree>
+          <div v-if="categoryTree.length === 0" class="empty-cat">暂无分类</div>
+        </div>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -54,7 +79,14 @@
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
+import { useCategoryStore } from '@/stores/category'
 import { ElMessage } from 'element-plus'
+
+const categoryStore = useCategoryStore()
+const categoryTree = computed(() => categoryStore.tree)
+const showAddCategory = ref(false)
+const addingCategory = ref(false)
+const categoryForm = reactive({ name: '', parentId: '' })
 
 const activeTab = ref('stats')
 const overview = reactive({ totalUsers: 0, totalResources: 0, totalDownloads: 0, totalFavorites: 0 })
@@ -69,7 +101,7 @@ let barChart = null
 let pieChart = null
 
 onMounted(async () => {
-  await Promise.all([fetchOverview(), fetchTopDownloaded(), fetchCategoryStats(), fetchUsers()])
+  await Promise.all([fetchOverview(), fetchTopDownloaded(), fetchCategoryStats(), fetchUsers(), categoryStore.fetchTree()])
   await nextTick()
   initCharts()
 })
@@ -112,23 +144,44 @@ async function fetchUsers() {
 
 function initCharts() {
   if (barChartRef.value) {
-    barChart = echarts.init(barChartRef.value)
+    barChart = echarts.init(barChartRef.value, 'dark')
     updateBarChart()
   }
   if (pieChartRef.value) {
-    pieChart = echarts.init(pieChartRef.value)
+    pieChart = echarts.init(pieChartRef.value, 'dark')
     updatePieChart()
   }
+}
+
+const darkChartTheme = {
+  backgroundColor: 'transparent',
+  textStyle: { color: '#A1A1AA' },
+  splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+  axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
+  axisLabel: { color: '#71717A' }
 }
 
 function updateBarChart() {
   if (!barChart) return
   const data = topDownloadedData.value
   barChart.setOption({
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: data.map(i => (i.title || '').substring(0, 8)), axisLabel: { rotate: 30 } },
-    yAxis: { type: 'value' },
-    series: [{ type: 'bar', data: data.map(i => i.download_count || 0), itemStyle: { color: '#409eff' } }]
+    ...darkChartTheme,
+    tooltip: { trigger: 'axis', backgroundColor: '#141414', borderColor: 'rgba(255,255,255,0.1)', textStyle: { color: '#EDEDEF' } },
+    grid: { left: '8%', right: '4%', bottom: '12%', top: '8%' },
+    xAxis: { type: 'category', data: data.map(i => (i.title || '').substring(0, 8)), axisLabel: { rotate: 30, color: '#71717A' }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }, axisTick: { show: false } },
+    yAxis: { type: 'value', axisLabel: { color: '#71717A' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }, axisLine: { show: false } },
+    series: [{
+      type: 'bar',
+      data: data.map(i => i.download_count || 0),
+      itemStyle: {
+        borderRadius: [4, 4, 0, 0],
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#6366F1' },
+          { offset: 1, color: '#A855F7' }
+        ])
+      },
+      barWidth: '60%'
+    }]
   }, true)
 }
 
@@ -137,20 +190,26 @@ function updatePieChart() {
   const data = categoryData.value
   if (data.length === 0) {
     pieChart.setOption({
-      title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999', fontSize: 14 } }
+      ...darkChartTheme,
+      title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#52525B', fontSize: 14 } }
     }, true)
     return
   }
   pieChart.setOption({
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-    legend: { orient: 'vertical', left: 'left', top: 'middle' },
+    ...darkChartTheme,
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', backgroundColor: '#141414', borderColor: 'rgba(255,255,255,0.1)', textStyle: { color: '#EDEDEF' } },
+    legend: { orient: 'vertical', left: 'left', top: 'middle', textStyle: { color: '#A1A1AA' } },
     series: [{
       type: 'pie',
       radius: ['40%', '70%'],
       center: ['60%', '50%'],
       data: data.map(i => ({ name: i.category_name || '未分类', value: i.resource_count || 0 })),
-      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } },
-      label: { formatter: '{b}: {c}' }
+      emphasis: { itemStyle: { shadowBlur: 20, shadowColor: 'rgba(99, 102, 241, 0.3)' } },
+      label: { formatter: '{b}: {c}', color: '#A1A1AA' },
+      itemStyle: {
+        borderColor: '#0A0A0A',
+        borderWidth: 2
+      }
     }]
   }, true)
 }
@@ -165,13 +224,142 @@ async function toggleUserStatus(user) {
     ElMessage.error(err.message || '操作失败')
   }
 }
+
+async function handleAddCategory() {
+  if (!categoryForm.name.trim()) return ElMessage.warning('请输入分类名称')
+  addingCategory.value = true
+  try {
+    await request.post('/categories', { name: categoryForm.name, parentId: categoryForm.parentId || null })
+    ElMessage.success('添加成功')
+    showAddCategory.value = false
+    categoryForm.name = ''
+    categoryForm.parentId = ''
+    await categoryStore.fetchTree()
+  } catch (err) {
+    ElMessage.error(err.message || '添加失败')
+  } finally {
+    addingCategory.value = false
+  }
+}
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@use '@/assets/styles/variables' as *;
+
 .admin-page {
+  max-width: 1100px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px;
+  background: $bg-surface;
+  border: 1px solid $border-micro;
+  border-radius: $radius-md;
+  overflow: hidden;
+  transition: all $transition-normal;
+
+  &:hover {
+    border-color: $border-hover;
+    box-shadow: $shadow-glow;
+  }
+}
+
+.stat-shimmer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.01) 45%,
+      rgba(255, 255, 255, 0.02) 50%,
+      rgba(255, 255, 255, 0.01) 55%,
+      transparent 60%
+    );
+    animation: shimmer 4s ease-in-out infinite;
+  }
+}
+
+.stat-label {
+  color: $text-tertiary;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-value {
+  color: $text-primary;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.charts-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.chart-card {
+  background: $bg-surface;
+  border: 1px solid $border-micro;
+  border-radius: $radius-md;
   padding: 16px;
 }
-.stats-cards {
+
+.chart-title {
+  color: $text-primary;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.chart-container {
+  height: 300px;
+}
+
+.category-manage {
+  margin-top: 8px;
+}
+
+.category-actions {
   margin-bottom: 16px;
+}
+
+.cat-node {
+  color: $text-secondary;
+  font-size: 14px;
+}
+
+.empty-cat {
+  color: $text-tertiary;
+  text-align: center;
+  padding: 32px 0;
+  font-size: 13px;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(50%); }
 }
 </style>

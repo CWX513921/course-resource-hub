@@ -20,8 +20,36 @@ function handleClick(node) {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@use '@/assets/styles/variables' as *;
+
 .category-tree {
-  padding: 8px;
+  padding: 4px;
+
+  :deep(.el-tree) {
+    background: transparent;
+    color: $text-secondary;
+
+    .el-tree-node__content {
+      height: 32px;
+      border-radius: $radius-sm;
+      transition: all $transition-fast;
+      padding-left: 8px !important;
+
+      &:hover {
+        background: $bg-surface-hover;
+      }
+    }
+
+    .el-tree-node.is-current > .el-tree-node__content {
+      background: $accent-indigo-dim;
+      color: $accent-indigo;
+      font-weight: 500;
+    }
+
+    .el-tree-node__expand-icon {
+      color: $text-muted;
+    }
+  }
 }
 </style>
