@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { rateLimiter } from 'hono-rate-limiter'
+import { MemoryStore } from 'hono-rate-limiter'
 import authRoutes from './routes/auth.js'
 import resourceRoutes from './routes/resource.js'
 import categoryRoutes from './routes/category.js'
@@ -20,9 +21,10 @@ app.use('*', cors({
 }))
 
 const authLimiter = rateLimiter({
+  store: new MemoryStore(),
   windowMs: 15 * 60 * 1000,
   limit: 5,
-  keyGenerator: (c) => c.req.header('x-forwarded-for') || c.req.header('cf-connecting-ip') || 'unknown'
+  keyGenerator: (c) => c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown'
 })
 
 app.get('/api/health', async (c) => {
