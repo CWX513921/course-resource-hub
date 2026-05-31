@@ -7,6 +7,7 @@ import favoriteRoutes from './routes/favorite.js'
 import statsRoutes from './routes/stats.js'
 import userRoutes from './routes/user.js'
 import commentRoutes from './routes/comment.js'
+import tagRoutes from './routes/tag.js'
 
 const app = new Hono()
 
@@ -51,6 +52,7 @@ app.route('/api/v1/favorites', favoriteRoutes)
 app.route('/api/v1/stats', statsRoutes)
 app.route('/api/v1/users', userRoutes)
 app.route('/api/v1/comments', commentRoutes)
+app.route('/api/v1/tags', tagRoutes)
 
 app.onError((err, c) => {
   console.error(`[ERROR] ${err.stack || err.message}`)

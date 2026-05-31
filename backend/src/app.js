@@ -33,6 +33,7 @@ const favoriteRoutes = require('./routes/favorite');
 const statsRoutes = require('./routes/stats');
 const userRoutes = require('./routes/user');
 const commentRoutes = require('./routes/comment');
+const tagRoutes = require('./routes/tag');
 
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/resources', resourceRoutes);
@@ -41,6 +42,7 @@ app.use('/api/v1/favorites', favoriteRoutes);
 app.use('/api/v1/stats', statsRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/comments', commentRoutes);
+app.use('/api/v1/tags', tagRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ code: 0, message: 'success', data: { status: 'ok', timestamp: new Date().toISOString() } });

@@ -67,11 +67,52 @@
             <template #default="{ data }">
               <span class="cat-node-row">
                 <span class="cat-node">{{ data.name }}</span>
-                <button class="cat-delete" @click.stop="handleDeleteCategory(data)">删除</button>
+                <el-button size="small" type="danger" link @click.stop="handleDeleteCategory(data)">删除</el-button>
               </span>
             </template>
           </el-tree>
           <div v-if="categoryTree.length === 0" class="empty-cat">暂无分类</div>
+        </div>
+      </el-tab-pane>
+      <el-tab-pane label="标签管理" name="tags">
+        <div class="tag-manage">
+          <div class="tag-actions">
+            <el-button type="primary" size="small" @click="openAddTag">添加标签</el-button>
+          </div>
+          <el-dialog v-model="showAddTag" title="添加标签" width="400px" destroy-on-close>
+            <el-form :model="tagForm" label-width="80px">
+              <el-form-item label="名称">
+                <el-input v-model="tagForm.name" placeholder="标签名称" />
+              </el-form-item>
+            </el-form>
+            <template #footer>
+              <el-button @click="showAddTag = false">取消</el-button>
+              <el-button type="primary" :loading="addingTag" @click="handleAddTag">添加</el-button>
+            </template>
+          </el-dialog>
+          <el-dialog v-model="showEditTag" title="编辑标签" width="400px" destroy-on-close>
+            <el-form :model="tagEditForm" label-width="80px">
+              <el-form-item label="名称">
+                <el-input v-model="tagEditForm.name" placeholder="标签名称" />
+              </el-form-item>
+            </el-form>
+            <template #footer>
+              <el-button @click="showEditTag = false">取消</el-button>
+              <el-button type="primary" :loading="editingTag" @click="handleEditTag">保存</el-button>
+            </template>
+          </el-dialog>
+          <el-table :data="tags" v-loading="tagsLoading">
+            <el-table-column prop="id" label="ID" width="60" />
+            <el-table-column prop="name" label="标签名" min-width="160" />
+            <el-table-column prop="resource_count" label="关联资源数" width="120" />
+            <el-table-column prop="created_at" label="创建时间" width="180" />
+            <el-table-column label="操作" width="160">
+              <template #default="{ row }">
+                <el-button size="small" @click="openEditTag(row)">编辑</el-button>
+                <el-button size="small" type="danger" @click="handleDeleteTag(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -91,6 +132,15 @@ const showAddCategory = ref(false)
 const addingCategory = ref(false)
 const categoryForm = reactive({ name: '', parentId: '' })
 
+const tags = ref([])
+const tagsLoading = ref(false)
+const showAddTag = ref(false)
+const showEditTag = ref(false)
+const addingTag = ref(false)
+const editingTag = ref(false)
+const tagForm = reactive({ name: '' })
+const tagEditForm = reactive({ id: null, name: '' })
+
 const activeTab = ref('stats')
 const overview = reactive({ totalUsers: 0, totalResources: 0, totalDownloads: 0, totalFavorites: 0 })
 const statLabels = { totalUsers: '总用户数', totalResources: '已发布资源', totalDownloads: '总下载量', totalFavorites: '总收藏数' }
@@ -104,7 +154,7 @@ let barChart = null
 let pieChart = null
 
 onMounted(async () => {
-  await Promise.all([fetchOverview(), fetchTopDownloaded(), fetchCategoryStats(), fetchUsers(), categoryStore.fetchTree()])
+  await Promise.all([fetchOverview(), fetchTopDownloaded(), fetchCategoryStats(), fetchUsers(), categoryStore.fetchTree(), fetchTags()])
   await nextTick()
   initCharts()
 })
@@ -255,6 +305,68 @@ async function handleDeleteCategory(node) {
     if (err !== 'cancel') ElMessage.error(err.message || '删除失败')
   }
 }
+
+async function fetchTags() {
+  tagsLoading.value = true
+  try {
+    const res = await request.get('/tags')
+    tags.value = res.data || []
+  } catch {} finally {
+    tagsLoading.value = false
+  }
+}
+
+function openAddTag() {
+  tagForm.name = ''
+  showAddTag.value = true
+}
+
+async function handleAddTag() {
+  if (!tagForm.name.trim()) return ElMessage.warning('请输入标签名称')
+  addingTag.value = true
+  try {
+    await request.post('/tags', { name: tagForm.name })
+    ElMessage.success('添加成功')
+    showAddTag.value = false
+    await fetchTags()
+  } catch (err) {
+    ElMessage.error(err.message || '添加失败')
+  } finally {
+    addingTag.value = false
+  }
+}
+
+function openEditTag(row) {
+  tagEditForm.id = row.id
+  tagEditForm.name = row.name
+  showEditTag.value = true
+}
+
+async function handleEditTag() {
+  if (!tagEditForm.name.trim()) return ElMessage.warning('请输入标签名称')
+  editingTag.value = true
+  try {
+    await request.put(`/tags/${tagEditForm.id}`, { name: tagEditForm.name })
+    ElMessage.success('更新成功')
+    showEditTag.value = false
+    await fetchTags()
+  } catch (err) {
+    ElMessage.error(err.message || '更新失败')
+  } finally {
+    editingTag.value = false
+  }
+}
+
+async function handleDeleteTag(row) {
+  try {
+    await ElMessageBox.confirm(`确定删除标签"${row.name}"吗？`, '确认删除', { type: 'warning' })
+    await request.delete(`/tags/${row.id}`)
+    ElMessage.success('删除成功')
+    await fetchTags()
+  } catch (err) {
+    if (err !== 'cancel') ElMessage.error(err.message || '删除失败')
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -360,6 +472,14 @@ async function handleDeleteCategory(node) {
   margin-bottom: 16px;
 }
 
+.tag-manage {
+  margin-top: 8px;
+}
+
+.tag-actions {
+  margin-bottom: 16px;
+}
+
 .cat-node-row {
   display: flex;
   align-items: center;
@@ -371,22 +491,6 @@ async function handleDeleteCategory(node) {
 .cat-node {
   color: $text-secondary;
   font-size: 14px;
-}
-
-.cat-delete {
-  background: none;
-  border: none;
-  color: $text-muted;
-  font-size: 12px;
-  cursor: pointer;
-  opacity: 0;
-  transition: all $transition-fast;
-
-  &:hover { color: $danger; }
-}
-
-.el-tree-node__content:hover .cat-delete {
-  opacity: 1;
 }
 
 .empty-cat {

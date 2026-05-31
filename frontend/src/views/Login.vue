@@ -28,6 +28,23 @@
           <router-link to="/register">没有账号？立即注册</router-link>
         </div>
       </el-form>
+      <div class="quick-login">
+        <div class="quick-login-title">快速登录测试</div>
+        <div class="quick-login-buttons">
+          <el-button class="quick-btn" @click="fillAccount('admin')">
+            <span class="quick-btn-dot admin-dot"></span>
+            管理员
+          </el-button>
+          <el-button class="quick-btn" @click="fillAccount('teacher')">
+            <span class="quick-btn-dot teacher-dot"></span>
+            教师
+          </el-button>
+          <el-button class="quick-btn" @click="fillAccount('student')">
+            <span class="quick-btn-dot student-dot"></span>
+            学生
+          </el-button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -45,6 +62,19 @@ const formRef = ref(null)
 const loading = ref(false)
 
 const form = reactive({ username: '', password: '' })
+
+const testAccounts = {
+  admin: { username: 'admin', password: '123456' },
+  teacher: { username: 'teacher1', password: '123456' },
+  student: { username: 'student1', password: '123456' }
+}
+
+function fillAccount(role) {
+  const account = testAccounts[role]
+  form.username = account.username
+  form.password = account.password
+}
+
 const rules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
@@ -188,6 +218,61 @@ async function handleLogin() {
       color: $accent-indigo;
     }
   }
+}
+
+.quick-login {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid $border-micro;
+}
+
+.quick-login-title {
+  color: $text-tertiary;
+  font-size: 12px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.quick-login-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.quick-btn {
+  flex: 1;
+  height: 36px;
+  font-size: 13px;
+  border-radius: $radius-md;
+  background: $bg-elevated;
+  border-color: $border-subtle;
+  color: $text-secondary;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $border-hover;
+    color: $text-primary;
+    background: $bg-surface-hover;
+  }
+}
+
+.quick-btn-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.admin-dot {
+  background: $danger;
+}
+
+.teacher-dot {
+  background: $accent-indigo;
+}
+
+.student-dot {
+  background: $success;
 }
 
 @keyframes shimmer {

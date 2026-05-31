@@ -20,9 +20,11 @@
           <el-cascader v-model="uploadForm.categoryId" :options="categoryOptions" :props="{ value: 'id', label: 'name', children: 'children', emitPath: false }" placeholder="请选择分类" clearable />
         </el-form-item>
         <el-form-item label="标签" prop="tags">
-          <el-select v-model="uploadForm.tags" multiple filterable allow-create placeholder="请输入标签" />
+          <el-select v-model="uploadForm.tags" multiple filterable allow-create default-first-option placeholder="请输入标签">
+            <el-option v-for="tag in tagOptions" :key="tag.id" :label="tag.name" :value="tag.name" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="文件" prop="file" required>
+        <el-form-item label="文件">
           <el-upload ref="uploadRef" :auto-upload="false" :limit="1" :on-change="onFileChange" :on-remove="onFileRemove" accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.rar">
             <el-button type="primary">选择文件</el-button>
             <template #tip><div class="el-upload__tip">支持 PDF/PPT/Word/Excel/ZIP 格式，最大50MB</div></template>
@@ -106,6 +108,7 @@ const editFormRef = ref(null)
 const myResources = ref([])
 const selectedFile = ref(null)
 const uploadProgress = ref(0)
+const tagOptions = ref([])
 
 const uploadForm = reactive({ title: '', description: '', categoryId: '', tags: [] })
 const editForm = reactive({ id: null, title: '', description: '', categoryId: '', status: 'published' })
@@ -119,9 +122,16 @@ const editRules = {
 const categoryOptions = computed(() => categoryStore.tree)
 
 onMounted(async () => {
-  await categoryStore.fetchTree()
+  await Promise.all([categoryStore.fetchTree(), fetchTags()])
   await fetchMyResources()
 })
+
+async function fetchTags() {
+  try {
+    const res = await request.get('/tags')
+    tagOptions.value = res.data || []
+  } catch {}
+}
 
 async function fetchMyResources() {
   loading.value = true
