@@ -39,8 +39,8 @@ auth.post('/login', async (c) => {
   if (!isMatch) {
     return c.json({ code: 401, message: '用户名或密码错误' }, 401)
   }
-  const token = await generateToken({ userId: user.id, role: user.role }, c.env.JWT_SECRET)
-  return c.json({ code: 0, message: '登录成功', data: { token, userInfo: { id: user.id, username: user.username, role: user.role } } })
+  const token = await generateToken({ userId: Number(user.id), role: user.role }, c.env.JWT_SECRET)
+  return c.json({ code: 0, message: '登录成功', data: { token, userInfo: { id: Number(user.id), username: user.username, role: user.role } } })
 })
 
 export default auth

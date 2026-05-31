@@ -72,7 +72,7 @@
               <div class="comment-meta">
                 <span class="comment-author">{{ c.username }}</span>
                 <span class="comment-time">{{ c.created_at }}</span>
-                <button v-if="c.user_id === currentUserId" class="comment-delete" @click="handleDeleteComment(c.id)">删除</button>
+                <button v-if="Number(c.user_id) === Number(currentUserId)" class="comment-delete" @click="handleDeleteComment(c.id)">删除</button>
               </div>
               <p class="comment-content">{{ c.content }}</p>
             </div>
@@ -125,9 +125,11 @@ onMounted(async () => {
 async function fetchComments() {
   try {
     const res = await request.get(`/comments/${route.params.id}`, { params: { pageSize: 50 } })
-    comments.value = res.data.list
-    commentTotal.value = res.data.total
-  } catch {}
+    comments.value = res.data.list || []
+    commentTotal.value = res.data.total || 0
+  } catch (err) {
+    console.error('获取评论失败:', err)
+  }
 }
 
 async function handleAddComment() {
@@ -139,7 +141,8 @@ async function handleAddComment() {
     commentContent.value = ''
     await fetchComments()
   } catch (err) {
-    ElMessage.error(err.message || '评论失败')
+    const msg = err?.response?.data?.message || err?.message || '评论失败'
+    ElMessage.error(msg)
   } finally {
     submittingComment.value = false
   }

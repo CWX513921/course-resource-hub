@@ -1,5 +1,5 @@
 <template>
-  <div class="resource-card" @click="$router.push(`/resource/${resource.id}`)">
+  <div class="resource-card" :class="{ compact }" @click="$router.push(`/resource/${resource.id}`)">
     <div class="card-shimmer"></div>
     <div class="card-header">
       <span class="file-badge" :class="fileTypeClass">{{ resource.file_type?.toUpperCase() }}</span>
@@ -30,7 +30,10 @@
 <script setup>
 import { computed } from 'vue'
 
-const props = defineProps({ resource: { type: Object, required: true } })
+const props = defineProps({
+  resource: { type: Object, required: true },
+  compact: { type: Boolean, default: false }
+})
 
 const fileTypeClass = computed(() => {
   const map = { pdf: 'pdf', ppt: 'ppt', doc: 'doc', xls: 'xls' }
@@ -60,6 +63,30 @@ const fileTypeClass = computed(() => {
 
     .card-shimmer::after {
       opacity: 1;
+    }
+  }
+
+  &.compact {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 18px;
+
+    .card-header {
+      margin-bottom: 0;
+      min-width: 0;
+      flex-shrink: 0;
+    }
+
+    .card-desc {
+      margin: 0;
+      max-width: 300px;
+      flex-shrink: 1;
+    }
+
+    .card-footer {
+      flex-shrink: 0;
+      margin-left: auto;
     }
   }
 }

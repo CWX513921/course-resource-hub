@@ -122,6 +122,16 @@ function onPageChange(page) {
 .resource-list {
   min-height: 200px;
 
+  &.card {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+
+    :deep(.resource-card) {
+      margin-bottom: 0;
+    }
+  }
+
   &.list {
     :deep(.resource-card) {
       .card-desc {
