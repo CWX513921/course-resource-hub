@@ -12,7 +12,7 @@ import tagRoutes from './routes/tag.js'
 const app = new Hono()
 
 app.use('*', cors({
-  origin: ['https://dd7878.cc.cd', 'https://course-sharing-api.cwx513921.workers.dev', 'http://localhost:5173'],
+  origin: ['https://dd7878.cc.cd', 'https://course-sharing-api.3105075752.workers.dev', 'http://localhost:5173'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   exposeHeaders: ['Content-Disposition'],
