@@ -22,11 +22,8 @@ jobs:
       - name: Build Frontend
         run: cd frontend && npm run build
 
-      - name: Deploy to Cloudflare Pages (Production)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: 'frontend'
-          wranglerVersion: '4'
-          command: pages deploy dist --project-name=course-sharing --branch=main
+      - name: Deploy to Cloudflare Pages
+        run: npx wrangler@4 pages deploy frontend/dist --project-name=course-sharing --branch=main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
